@@ -68,10 +68,10 @@ class UpdateController extends Controller
     }
 
     public function updateFile(Request $request)
-    {
-        $bucket_name = 'dev-cms-cw-com-tw';  
+    { 
         $file = $request->file('file');
         $file_name = $this->getFileName($file);
+        $bucket_name = $request->get('bucket');
 
         $this->init($bucket_name);
         $this->filesystem->put($file_name, file_get_contents($file));
@@ -80,7 +80,6 @@ class UpdateController extends Controller
         if(!empty($url)){
             $result = [
                 'success' => true,
-                'code' => 0000,
                 'url' => $url
             ];
         }
@@ -88,10 +87,9 @@ class UpdateController extends Controller
         return response()->json($result);
     }
 
-    public function getFile(Request $request)
+    public function deleteFile(Request $request)
     {
-        $bucket_name = 'dev-cms-cw-com-tw';  
-        $this->init($bucket_name);
+        $bucket_name = $request->get('bucket');
     }
     
     public function index()

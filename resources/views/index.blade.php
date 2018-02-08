@@ -41,6 +41,7 @@
                     let formData = new FormData()
                     let imagefile = document.querySelector('#file_img_tmp')
                     formData.append('file', imagefile.files[0])
+                    formData.append('bucket', 'dev-cw-com-tw')
 
                     axios.post('http://demo.com/update/file', formData)
                             .then(response => {
