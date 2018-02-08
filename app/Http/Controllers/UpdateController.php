@@ -10,7 +10,55 @@ use Superbalist\Flysystem\GoogleStorage\GoogleStorageAdapter;
 class UpdateController extends Controller 
 {
 
-    protected function getFileName($file) 
+    protected $json_path;
+    protected $storage_client;
+    protected $bucket;
+    protected $adapter;
+    protected $filesystem;
+
+    protected function init($bucket_name)
+    {
+        $this->json_path = app_path('Http/Controllers/Auth/storage.json');
+        
+        $this->storage_client = new StorageClient([
+            'projectId' => 'cw-web-service',
+            'keyFilePath' => $this->json_path,
+        ]);
+        
+        $this->setBucket($bucket_name);
+        $this->setAdapter();
+        $this->setFilesystem();
+    }
+
+    protected function setBucket($bucket_name)
+    {
+        $this->bucket = $this->storage_client->bucket($bucket_name);
+    }
+    
+    protected function setAdapter()
+    {
+        $this->adapter = new GoogleStorageAdapter($this->storage_client, $this->bucket);
+    }
+
+    protected function setFilesystem()
+    {
+        $this->filesystem = new Filesystem($this->adapter);
+    }
+    
+    protected function setObjectPublic($file_name)
+    {
+        $object = $this->bucket->object($file_name);
+        $object->update(['acl' => []], ['predefinedAcl' => 'PUBLICREAD']);
+        return $object;
+    }
+    
+    protected function getObjectUrl($file_name)
+    {
+        $object = $this->setObjectPublic($file_name);
+        return 'https://storage.googleapis.com/' . $object->info()['bucket'] . '/' . $object->info()['name'];
+    }
+
+    protected function getFileName($file)
     {
         $original_name = $file->getClientOriginalName();
         $original_ext = $file->getClientOriginalExtension();
@@ -19,30 +67,36 @@ class UpdateController extends Controller
         return time() . '.' . $original_ext;
     }
 
-    public function index() 
+    public function updateFile(Request $request)
     {
-        return view('index');
-    }
-
-    public function updatePost(Request $request) 
-    {
-        $file = $request->file('fileToUpload');
+        $bucket_name = 'dev-cms-cw-com-tw';  
+        $file = $request->file('file');
         $file_name = $this->getFileName($file);
 
-        $json_path = app_path('Http/Controllers/Auth/storage.json');
-
-        $storageClient = new StorageClient([
-            'projectId' => 'cw-web-service',
-            'keyFilePath' => $json_path,
-        ]);
-        $bucket = $storageClient->bucket('dev-cms-cw-com-tw');
-
-        $adapter = new GoogleStorageAdapter($storageClient, $bucket);
-
-        $filesystem = new Filesystem($adapter);
-        $filesystem->put($file_name, file_get_contents($file));
+        $this->init($bucket_name);
+        $this->filesystem->put($file_name, file_get_contents($file));
+        $url = $this->getObjectUrl($file_name);
         
-        dd($file_name);
+        if(!empty($url)){
+            $result = [
+                'success' => true,
+                'code' => 0000,
+                'url' => $url
+            ];
+        }
+        
+        return response()->json($result);
+    }
+
+    public function getFile(Request $request)
+    {
+        $bucket_name = 'dev-cms-cw-com-tw';  
+        $this->init($bucket_name);
+    }
+    
+    public function index()
+    {
+        return view('index');
     }
 
 }
