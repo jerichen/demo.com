@@ -86,7 +86,24 @@ class UpdateController extends Controller
         
         return response()->json($result);
     }
-
+    
+    public function uploadImgur(Request $request)
+    {
+        $response = $client->request('POST', 'https://api.imgur.com/3/image', [
+            'headers' => [
+                'authorization' => 'Client-ID {{Client-ID}}',
+                'content-type' => 'application/x-www-form-urlencoded',
+            ],
+            'form_params' => [
+                'image' => base64_encode(file_get_contents($file))
+            ],
+        ]);
+        
+        $res = json_decode(($response->getBody()->getContents()));
+        $url = $res->data->link;
+        return "<script>window.parent.CKEDITOR.tools.callFunction('{$callback}','{$url}', '');</script>";
+    }
+    
     public function deleteFile(Request $request)
     {
         $bucket_name = $request->get('bucket');
